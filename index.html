@@ -2,39 +2,32 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Protótipo 2 - WebAR Final</title>
+    <title>Protótipo 2 - WebAR Interativo</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 <body style="margin : 0px; overflow: hidden;">
 
-    <a-scene embedded arjs>
+    <a-scene embedded arjs gesture-handler>
     
-        <a-light type="ambient" color="#888"></a-light>
-        <a-light type="point" intensity="0.5" position="2 4 4"></a-light>
+        <a-light type="ambient" color="#BBB"></a-light>
+        <a-light type="point" intensity="0.6" position="2 4 4"></a-light>
 
         <a-marker type="pattern" url="pattern-DC.patt">
 
-            <a-text value="SALA 1\nLab 01"
-                      position="0.8 0.7 0"
+            <a-text value="Lab 01"
+                      position="0.1 0.5 0"
                       align="left"
-                      color="#FFFFFF"
+                      color="#ffb703"
                       scale="1.2 1.2 1.2"
                       rotation="-90 0 0">
             </a-text>
             
-            <a-gltf-model src="arrow.glb"
-                  position="-0.6 0.5 0"
-                  scale="0.9 0.9 0.9"  rotation="-90 0 0">
-                
-                <a-animation attribute="position"
-                             dur="1000"
-                             direction="alternate-reverse"
-                             from="-0.6 0.5 0"
-                             to="-0.6 0.8 0"
-                             repeat="indefinite">
-                </a-animation>
-
+            <a-gltf-model id="modelo-3d"
+                          src="classroom.glb"
+                          position="-0.8 0.5 0"
+                          scale="0.3 0.3 0.2"
+                          rotation="0 0 0">
             </a-gltf-model>
 
         </a-marker>
@@ -42,6 +35,80 @@
         <a-entity camera></a-entity>
 
     </a-scene>
+
+    <script>
+        AFRAME.registerComponent('gesture-handler', {
+            init: function () {
+                this.targetEl = document.querySelector('#modelo-3d');
+                this.initialScale = this.targetEl.object3D.scale.clone();
+                this.initialRotation = this.targetEl.object3D.rotation.clone();
+                
+                // Variáveis para Zoom
+                this.distance = 0;
+                this.initialDistance = 0;
+                
+                // Variáveis para Rotação
+                this.isDragging = false;
+                this.initialTouch = { x: 0, y: 0 };
+                this.sensitivity = 0.5; // Ajuste este valor para mais/menos rotação
+
+                // Event Listeners
+                this.el.sceneEl.addEventListener('touchstart', this.onTouchStart.bind(this));
+                this.el.sceneEl.addEventListener('touchmove', this.onTouchMove.bind(this));
+                this.el.sceneEl.addEventListener('touchend', this.onTouchEnd.bind(this));
+            },
+
+            onTouchStart: function (e) {
+                if (e.touches.length === 1) { // Rotação
+                    this.isDragging = true;
+                    this.initialTouch.x = e.touches[0].pageX;
+                    this.initialTouch.y = e.touches[0].pageY;
+                    this.initialRotation.set(
+                        this.targetEl.object3D.rotation.x,
+                        this.targetEl.object3D.rotation.y,
+                        this.targetEl.object3D.rotation.z
+                    );
+                } else if (e.touches.length === 2) { // Zoom
+                    this.isDragging = false;
+                    this.initialDistance = this.getDistance(e.touches[0], e.touches[1]);
+                    this.initialScale.set(
+                        this.targetEl.object3D.scale.x,
+                        this.targetEl.object3D.scale.y,
+                        this.targetEl.object3D.scale.z
+                    );
+                }
+            },
+
+            onTouchMove: function (e) {
+                if (this.isDragging && e.touches.length === 1) {
+                    const deltaX = e.touches[0].pageX - this.initialTouch.x;
+                    const deltaY = e.touches[0].pageY - this.initialTouch.y;
+
+                    this.targetEl.object3D.rotation.y = this.initialRotation.y + (deltaX * this.sensitivity * (Math.PI / 180));
+                    this.targetEl.object3D.rotation.x = this.initialRotation.x + (deltaY * this.sensitivity * (Math.PI / 180));
+
+                } else if (e.touches.length === 2) {
+                    this.distance = this.getDistance(e.touches[0], e.touches[1]);
+                    const scaleFactor = this.distance / this.initialDistance;
+                    this.targetEl.object3D.scale.set(
+                        this.initialScale.x * scaleFactor,
+                        this.initialScale.y * scaleFactor,
+                        this.initialScale.z * scaleFactor
+                    );
+                }
+            },
+
+            onTouchEnd: function (e) {
+                this.isDragging = false;
+            },
+
+            getDistance: function (touch1, touch2) {
+                const dx = touch1.pageX - touch2.pageX;
+                const dy = touch1.pageY - touch2.pageY;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+        });
+    </script>
 
 </body>
 </html>
